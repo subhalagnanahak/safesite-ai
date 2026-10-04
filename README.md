@@ -1,134 +1,143 @@
-# 🦺 Autonomous Workers Safety System for On-Site Hazard Prevention  
+# 🦺 SafeSite AI – Workers Safety System for On-Site Hazard Prevention
 
-## 📌 Overview  
-This project is a **Final Year Project (FYP)** for BSCS, focusing on construction site safety using **AI, Computer Vision, and Robotics**.  
+An AI-powered construction site safety system that detects missing PPE, monitors for **fire and smoke**, tracks attendance with facial recognition, and presents everything in a Flask web dashboard.
 
-The system integrates **YOLOv8 for PPE detection**, **facial recognition for attendance tracking**, and a **Arduino-based autonomous patrolling robot** to monitor construction sites. It stores attendance, violation logs, and analytics in an **SQLite database** with a **Flask-based web dashboard** for visualization and management.  
-
----
-
-## ✨ Key Features  
-- **🔍 PPE Detection (YOLOv8)** – Detects helmets, vests, and other PPE in real-time.  
-- **🧑‍🤝‍🧑 Facial Recognition Attendance** – Automates employee attendance marking.  
-- **🤖 Autonomous Patrolling Robot (Arduino)** – Patrols the site, captures video, and detects hazards.  
-- **📊 Web Dashboard (Flask + HTML Templates)** – Displays analytics, attendance, violations, employee details, and salary reports.  
-- **🗄️ Database (SQLite)** – Stores attendance logs, PPE violations, and employee records.  
-- **📷 Violation Evidence** – Captures and stores images of violations in `/static/violation_images`.  
+> **Credit:** This project is built on top of the open-source *Autonomous Workers Safety System* by **Ahmed Islam** ([original repository](ORIGINAL-REPO-LINK)). See [What I Added](#-what-i-added) for my contributions.
 
 ---
 
-## 📂 Project Structure  
+## ✨ Key Features
+
+- 🔍 **PPE Detection (YOLOv8)** – Detects helmets, vests and other PPE in real time.
+- 🔥 **Fire & Smoke Detection** – A dedicated model flags fire and smoke in live or recorded video.
+- 🧑‍🤝‍🧑 **Facial Recognition Attendance** – Automatically marks employee attendance.
+- 📊 **Web Dashboard (Flask)** – Analytics, attendance, violations, employee records and salary reports.
+- 🗄️ **SQLite Database** – Stores attendance logs, violations and employee data.
+- 📷 **Violation Evidence** – Saves images of each violation for audits.
+- 🤖 **Patrol Robot (Arduino)** – Path-memorizing robot code for site patrolling.
+
+---
+
+## 🆕 What I Added
+
+- Integrated **fire and smoke detection** (`static/models/fire_smoke.pt`) alongside the existing PPE detection.
+- Restructured the repository, added a `.gitignore`, and removed personal data (face photos, violation images, database) from version control.
+- Rewrote the documentation.
+
+---
+
+## 🛠️ Tech Stack
+
+| Area | Tools |
+|---|---|
+| Computer Vision | YOLOv8, OpenCV, face_recognition |
+| Backend | Python, Flask |
+| Database | SQLite |
+| Frontend | HTML, CSS (Flask templates) |
+| Robotics | Arduino (C/C++) |
+
+---
+
+## 📂 Project Structure
+
 ```
-Autonomous-Workers-Safety-System/
-│
-├── Notebook/
-│   └── Construction_Site_Workers_PPE_Detection.ipynb   # Training/Testing Notebook
-│
-├── Path memorizer robot/
-│   ├── path_memorizer arduino code/
-│   │   └── path_memorizer.ino                          # Arduino code for robot
-│   └── Circuit diagram.jpg                             # Robot wiring diagram
-│
-├── Results/                                            # Model results & evaluation
-│
-├── static/                                             # Static assets
-│   ├── employees_faces/                                # Employee face dataset
-│   ├── images/                                         # General images
-│   ├── models/                                         # Trained YOLOv8 models
-│   ├── reports/                                        # Reports & charts
-│   └── violation_images/                               # Captured violation evidence
-│
-├── templates/                                          # Flask HTML templates
-│   ├── about.html
-│   ├── add_employee.html
-│   ├── analytics.html
-│   ├── attendance.html
-│   ├── base.html
-│   ├── detection.html
-│   ├── employees.html
-│   ├── index.html
-│   ├── salary_details.html
-│   └── violations.html
-│
-├── app.py                                              # Flask app entry point
-├── requirements.txt                                    # Python dependencies
-├── safety_system.db                                    # SQLite database
-├── LICENSE
-└── README.md
+safesite-ai/
+├── Notebook/                  # Training / testing notebook
+├── Path memorizer robot/      # Arduino code + circuit diagram
+├── Results/                   # Model evaluation curves and samples
+├── static/
+│   ├── images/                # General images
+│   ├── models/                # best.pt (PPE) and fire_smoke.pt (fire & smoke)
+│   └── reports/               # Generated charts
+├── templates/                 # Flask HTML pages
+├── app.py                     # Flask app entry point
+├── fire.mp4                   # Sample video for fire/smoke testing
+├── requirements.txt
+└── LICENSE
 ```
+
+> `static/employees_faces/`, `static/violation_images/` and `safety_system.db` are **not** included because they hold personal data. Create the folders as shown below.
 
 ---
 
-## ⚙️ Installation & Setup  
+## ⚙️ Installation & Setup
 
-### 1️⃣ Clone the Repository  
+**1. Clone the repository**
 ```bash
-git clone https://github.com/username/autonomous-safety-system.git
-cd autonomous-safety-system
+git clone https://github.com/subhalagnanahak/safesite-ai.git
+cd safesite-ai
 ```
 
-### 2️⃣ Create Virtual Environment (Optional but Recommended)  
+**2. Create a virtual environment**
 ```bash
 python -m venv venv
-source venv/bin/activate   # Linux/Mac
-venv\Scripts\activate      # Windows
+venv\Scripts\activate        # Windows
+source venv/bin/activate     # Linux / Mac
 ```
 
-### 3️⃣ Install Dependencies  
+**3. Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4️⃣ Run the Flask Web App  
+**4. Create the data folders**
+```bash
+mkdir static/employees_faces static/violation_images
+```
+
+**5. Run the app**
 ```bash
 python app.py
 ```
-Now open **http://127.0.0.1:5000/** in your browser.  
+
+Open **http://127.0.0.1:5000/** in your browser.
 
 ---
 
-## 🖥️ Web Dashboard Pages  
-- **Home (`index.html`)** – Overview of the system.  
-- **Add Employee (`add_employee.html`)** – Register new workers.  
-- **Attendance (`attendance.html`)** – View daily attendance logs.  
-- **Analytics (`analytics.html`)** – Charts and reports of safety compliance.  
-- **Detection (`detection.html`)** – Real-time PPE detection stream.  
-- **Violations (`violations.html`)** – List of recorded violations with evidence.  
-- **Employees (`employees.html`)** – Employee database.  
-- **Salary Details (`salary_details.html`)** – Worker salary/attendance report.  
+## 🖥️ Dashboard Pages
+
+| Page | Purpose |
+|---|---|
+| Home | System overview |
+| Add Employee | Register workers with a face photo |
+| Employees | Employee records |
+| Attendance | Daily attendance logs |
+| Detection | Live PPE and fire/smoke detection |
+| Violations | Recorded violations with image evidence |
+| Analytics | Compliance charts and reports |
+| Salary Details | Attendance-based salary report |
 
 ---
 
-## 🛠️ Technologies Used  
-- **Computer Vision:** YOLOv8, OpenCV, Face Recognition  
-- **Backend:** Flask (Python)  
-- **Database:** SQLite  
-- **Frontend:** HTML, CSS (Flask templates)  
-- **Robotics:** Arduino 
-- **Programming:** Python, Arduino C  
+## 📈 Results
+
+PPE model evaluation (see the `Results/` folder):
+
+| | |
+|---|---|
+| ![Confusion matrix](Results/confusion_matrix_normalized.png) | ![PR curve](Results/PR_curve.png) |
 
 ---
 
-## 📈 Results & Reports  
-- Real-time detection accuracy using **YOLOv8**.  
-- Attendance tracking via facial recognition.  
-- Violation images captured & stored for audits.  
-- Reports generated and displayed in **analytics dashboard**.  
+## 🚀 Future Scope
+
+- SMS / email alerts for violations and fire events
+- Gas-leak and other IoT sensor integration
+- Cloud deployment for multi-site monitoring
+- Multi-camera and multi-robot support
 
 ---
 
-## 🚀 Future Scope  
-- Cloud integration for large-scale deployment.  
-- IoT sensors for hazard detection (fire, gas leaks).  
-- SMS/Email alerts for violations.  
-- Multi-robot patrolling.  
+## 👨‍💻 Author
+
+**Subhalagna Nahak**
+B.Tech, Central Tool Room & Training Centre, Bhubaneswar
+GitHub: [@subhalagnanahak](https://github.com/subhalagnanahak)
+
+Original project by **Ahmed Islam**.
 
 ---
 
-## 👨‍💻 Author  
-**Ahmed Islam**  
-BSCS – Final Year Project  
+## 📄 License
 
----
-
-🔥 If you like this project, don’t forget to **⭐ star the repository** and **share with others**!  
+See the [LICENSE](LICENSE) file. The original copyright notice is preserved as the license requires.
