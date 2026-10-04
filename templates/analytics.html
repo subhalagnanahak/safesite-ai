@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Analytics Dashboard</h2>
+        <div>
+            <button class="btn btn-outline-primary" onclick="exportAnalytics()">
+                <i class="fas fa-download me-1"></i>Export Report
+            </button>
+        </div>
+    </div>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Employees</h5>
+                    <h2 class="mb-0">{{ employees_count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Compliance Rate</h5>
+                    <h2 class="mb-0">{{ compliance_rate }}%</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Violations</h5>
+                    <h2 class="mb-0">{{ total_violations }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Average Attendance</h5>
+                    <h2 class="mb-0">{{ avg_attendance }}%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row 1 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Safety Compliance Trend</h5>
+                    <canvas id="complianceChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Violations by Type</h5>
+                    <canvas id="violationsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row 2 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Top Violators</h5>
+                    <canvas id="violatorsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Attendance Distribution</h5>
+                    <canvas id="attendanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detailed Statistics -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Detailed Statistics</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Total Detections</th>
+                                    <th>Violations</th>
+                                    <th>Compliance Rate</th>
+                                    <th>Attendance Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in analytics %}
+                                <tr>
+                                    <td>{{ record.date }}</td>
+                                    <td>{{ record.total_detections }}</td>
+                                    <td>{{ record.violations }}</td>
+                                    <td>{{ "%.2f"|format(record.compliance_rate) }}%</td>
+                                    <td>{{ "%.2f"|format(record.attendance_rate) }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Compliance Trend Chart
+const complianceCtx = document.getElementById('complianceChart').getContext('2d');
+new Chart(complianceCtx, {
+    type: 'line',
+    data: {
+        labels: {{ dates|tojson }},
+        datasets: [{
+            label: 'Compliance Rate',
+            data: {{ compliance_rates|tojson }},
+            borderColor: '#2ecc71',
+            tension: 0.4,
+            fill: true,
+            backgroundColor: 'rgba(46, 204, 113, 0.1)'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'top',
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100,
+                title: {
+                    display: true,
+                    text: 'Compliance Rate (%)'
+                }
+            }
+        }
+    }
+});
+
+// Violations by Type Chart
+const violationsCtx = document.getElementById('violationsChart').getContext('2d');
+new Chart(violationsCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ violation_types|tojson }},
+        datasets: [{
+            data: {{ violation_counts|tojson }},
+            backgroundColor: [
+                '#e74c3c',
+                '#f1c40f',
+                '#3498db',
+                '#2ecc71',
+                '#9b59b6'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'right'
+            }
+        }
+    }
+});
+
+// Top Violators Chart
+const violatorsCtx = document.getElementById('violatorsChart').getContext('2d');
+new Chart(violatorsCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ top_violators_names|tojson }},
+        datasets: [{
+            label: 'Number of Violations',
+            data: {{ top_violators_counts|tojson }},
+            backgroundColor: '#e74c3c'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Number of Violations'
+                }
+            }
+        }
+    }
+});
+
+// Attendance Distribution Chart
+const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+new Chart(attendanceCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Present', 'Absent', 'Late'],
+        datasets: [{
+            data: {{ attendance_distribution|tojson }},
+            backgroundColor: [
+                '#2ecc71',
+                '#e74c3c',
+                '#f1c40f'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'right'
+            }
+        }
+    }
+});
+
+function exportAnalytics() {
+    // Create a CSV string
+    let csv = 'Date,Total Detections,Violations,Compliance Rate,Attendance Rate\n';
+    
+    // Get all rows from the table
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => cell.textContent.trim());
+        csv += rowData.join(',') + '\n';
+    });
+    
+    // Create and trigger download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'analytics_report.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+</script>
+{% endblock %} 

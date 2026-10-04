@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h2>Safety Violations</h2>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Employee</th>
+                        <th>Position</th>
+                        <th>Violation Type</th>
+                        <th>Timestamp</th>
+                        <th>Image</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for violation in violations %}
+                    <tr>
+                        <td>{{ violation.id }}</td>
+                        <td>{{ violation.employee_name }}</td>
+                        <td>{{ violation.position }}</td>
+                        <td>
+                            <span class="badge bg-danger">{{ violation.violation_type }}</span>
+                        </td>
+                        <td>{{ violation.timestamp }}</td>
+                        <td>
+                            {% if violation.image_path %}
+                            <button type="button" class="btn btn-sm btn-info" 
+                                    onclick="showViolationImage('{{ url_for('static', filename=violation.image_path.replace('static/', '')) }}')">
+                                <i class="fas fa-image"></i> View
+                            </button>
+                            {% else %}
+                            <span class="text-muted">No image</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if violation.acknowledged %}
+                            <span class="badge bg-success">Acknowledged</span>
+                            {% else %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Violation Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="violationImage" class="img-fluid" style="max-height: 70vh;">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showViolationImage(imageUrl) {
+    document.getElementById('violationImage').src = imageUrl;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+}
+</script>
+{% endblock %} 

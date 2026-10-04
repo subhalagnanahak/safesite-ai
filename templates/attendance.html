@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Attendance Records</h2>
+        <div>
+            <button class="btn btn-outline-primary" onclick="exportAttendance()">
+                <i class="fas fa-download me-1"></i>Export
+            </button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Position</th>
+                            <th>Date</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Hours Worked</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance %}
+                        <tr>
+                            <td>{{ record.employee_name }}</td>
+                            <td>{{ record.position }}</td>
+                            <td>{{ record.date }}</td>
+                            <td>{{ record.time_in }}</td>
+                            <td>{{ record.time_out or 'Not checked out' }}</td>
+                            <td>
+                                {% if record.time_out %}
+                                    {% set time_in = record.time_in|to_datetime %}
+                                    {% set time_out = record.time_out|to_datetime %}
+                                    {% if time_in and time_out %}
+                                        {{ ((time_out - time_in).total_seconds()|int // 3600) }}h
+                                        {{ ((time_out - time_in).total_seconds()|int % 3600 // 60) }}m
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {% if record.status == 'present' %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ record.status|title }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function exportAttendance() {
+    // Create a CSV string
+    let csv = 'Employee,Position,Date,Time In,Time Out,Hours Worked,Status\n';
+    
+    // Get all rows from the table
+    const rows = document.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => {
+            // Handle special cases
+            if (cell.querySelector('.badge')) {
+                return cell.querySelector('.badge').textContent;
+            }
+            return cell.textContent.trim();
+        });
+        csv += rowData.join(',') + '\n';
+    });
+    
+    // Create and trigger download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'attendance_records.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+</script>
+{% endblock %} 

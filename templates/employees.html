@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Employee Management</h2>
+        <a href="{{ url_for('add_employee') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>Add New Employee
+        </a>
+    </div>
+    
+    <div class="row">
+        {% for employee in employees %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            {% if employee.name %}
+                                <img src="{{ url_for('static', filename='employees_faces/' + employee.name + '.jpg') }}" 
+                                     class="img-fluid rounded" alt="{{ employee.name }}"
+                                     style="width: 100%; height: 150px; object-fit: cover;"
+                                     onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default-avatar.png') }}';">
+                            {% else %}
+                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                     style="width: 100%; height: 150px;">
+                                    <i class="fas fa-user fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <h5 class="card-title mb-1">{{ employee.name }}</h5>
+                            <p class="text-muted mb-2">{{ employee.position }}</p>
+                            <p class="mb-1">
+                                <strong>Salary:</strong> ${{ "%.2f"|format(employee.salary) }}
+                            </p>
+                            <p class="mb-1">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <strong>Joined:</strong> {{ employee.join_date }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-danger btn-sm" 
+                                onclick="confirmDelete({{ employee.id }}, '{{ employee.name }}')">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <span id="employeeName" class="fw-bold"></span>?
+                This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(employeeId, employeeName) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    document.getElementById('employeeName').textContent = employeeName;
+    document.getElementById('deleteForm').action = `/remove_employee/${employeeId}`;
+    modal.show();
+}
+</script>
+{% endblock %} 

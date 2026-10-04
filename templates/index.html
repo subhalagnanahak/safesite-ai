@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <!-- Hero Section -->
+    <div class="row align-items-center mb-5">
+        <div class="col-md-6">
+            <h1 class="display-4 mb-4">Welcome to SafetyGuard</h1>
+            <p class="lead mb-4">An AI-powered safety monitoring system for enhanced workplace security and compliance.</p>
+            <a href="{{ url_for('detection') }}" class="btn btn-primary btn-lg">
+                <i class="fas fa-video me-2"></i>Start Detection
+            </a>
+        </div>
+        <div class="col-md-6">
+            <img src="{{ url_for('static', filename='images/hero-image.jpg') }}" alt="Safety Monitoring" class="img-fluid rounded shadow">
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt fa-3x mb-3 text-primary"></i>
+                    <h5 class="card-title">Real-time Safety Monitoring</h5>
+                    <p class="card-text">Continuous monitoring of safety gear compliance using advanced AI technology.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-check fa-3x mb-3 text-primary"></i>
+                    <h5 class="card-title">Employee Management</h5>
+                    <p class="card-text">Efficient tracking of employee attendance and safety compliance records.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-3x mb-3 text-primary"></i>
+                    <h5 class="card-title">Analytics & Reporting</h5>
+                    <p class="card-text">Comprehensive analytics and reports for better decision-making.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Information -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title text-center mb-4">Final Year Project</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Project Details</h5>
+                            <p class="mb-2"><strong>Project Title:</strong> SafetyGuard - AI-Powered Safety Monitoring System</p>
+                            <p class="mb-2"><strong>Developed By:</strong></p>
+                            <ul class="list-unstyled ms-3">
+                                <li>- Ahmed Islam</li>
+                                <li>- Mubashar Nisar</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="mb-3">Supervision</h5>
+                            <p class="mb-2"><strong>Supervisor:</strong> Dr. Yousaf Saeed</p>
+                            <p class="mb-0"><strong>Department:</strong> Computer Science</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+static/violation_images/
+static/employees_faces/
+safety_system.db
+runs/
+static/violation_images/
+static/employees_faces/
+safety_system.db
+runs/

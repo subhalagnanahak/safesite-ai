@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Add New Employee</h2>
+                
+                <form method="POST" enctype="multipart/form-data" id="employeeForm">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Employee Photo</h5>
+                                    
+                                    <!-- Photo Source Selection -->
+                                    <div class="mb-3">
+                                        <div class="btn-group w-100" role="group">
+                                            <input type="radio" class="btn-check" name="photoSource" id="cameraSource" value="camera" checked>
+                                            <label class="btn btn-outline-primary" for="cameraSource">
+                                                <i class="fas fa-camera me-1"></i>Take Photo
+                                            </label>
+                                            
+                                            <input type="radio" class="btn-check" name="photoSource" id="uploadSource" value="upload">
+                                            <label class="btn btn-outline-primary" for="uploadSource">
+                                                <i class="fas fa-upload me-1"></i>Upload Photo
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Camera Capture Section -->
+                                    <div id="camera-section">
+                                        <div class="text-center mb-3">
+                                            <div id="camera-container" class="mb-3">
+                                                <img src="{{ url_for('video_feed') }}" class="img-fluid rounded" id="camera-feed">
+                                            </div>
+                                            <button type="button" class="btn btn-primary" id="capture-btn">
+                                                <i class="fas fa-camera me-1"></i>Capture Photo
+                                            </button>
+                                        </div>
+                                        <div id="captured-photo" class="text-center" style="display: none;">
+                                            <img id="preview" class="img-fluid rounded mb-2" style="max-height: 200px;">
+                                            <div>
+                                                <button type="button" class="btn btn-secondary btn-sm" id="retake-btn">
+                                                    <i class="fas fa-redo me-1"></i>Retake
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Upload Section -->
+                                    <div id="upload-section" style="display: none;">
+                                        <div class="mb-3">
+                                            <label for="photo-upload" class="form-label">Upload Employee Photo</label>
+                                            <input type="file" class="form-control" id="photo-upload" name="photo_file" accept="image/*">
+                                            <div class="mt-2">
+                                                <img id="upload-preview" class="img-fluid rounded" style="max-height: 200px; display: none;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <input type="hidden" name="photo" id="photo-input">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                                <div id="name-feedback" class="invalid-feedback">
+                                    An employee with this name already exists.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="position" class="form-label">Position</label>
+                                <select class="form-select" id="position" name="position" required>
+                                    <option value="">Select Position</option>
+                                    <option value="Worker">Worker</option>
+                                    <option value="Supervisor">Supervisor</option>
+                                    <option value="Manager">Manager</option>
+                                    <option value="Engineer">Engineer</option>
+                                    <option value="Technician">Technician</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="salary" class="form-label">Salary ($)</label>
+                                <input type="number" class="form-control" id="salary" name="salary" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-end">
+                        <a href="{{ url_for('employees') }}" class="btn btn-secondary me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary" id="submit-btn">Add Employee</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    let photoCaptured = false;
+    let photoUploaded = false;
+    
+    // Handle photo source selection
+    $('input[name="photoSource"]').change(function() {
+        if (this.value === 'camera') {
+            $('#camera-section').show();
+            $('#upload-section').hide();
+            $('#photo-upload').val('');
+            $('#upload-preview').hide();
+            photoUploaded = false;
+        } else {
+            $('#camera-section').hide();
+            $('#upload-section').show();
+            $('#camera-container').hide();
+            $('#captured-photo').hide();
+            photoCaptured = false;
+        }
+    });
+    
+    // Camera capture functionality
+    $('#capture-btn').click(function() {
+        $.get('/capture_employee_photo', function(response) {
+            if (response.success) {
+                $('#preview').attr('src', response.image);
+                $('#photo-input').val(response.image);
+                $('#camera-container').hide();
+                $('#captured-photo').show();
+                photoCaptured = true;
+            }
+        });
+    });
+    
+    $('#retake-btn').click(function() {
+        $('#camera-container').show();
+        $('#captured-photo').hide();
+        $('#photo-input').val('');
+        photoCaptured = false;
+    });
+    
+    // File upload preview
+    $('#photo-upload').change(function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                $('#upload-preview').attr('src', e.target.result).show();
+                photoUploaded = true;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Check if name exists
+    $('#name').on('blur', function() {
+        const name = $(this).val();
+        if (name) {
+            $.get('/check_employee_name', { name: name }, function(response) {
+                if (response.exists) {
+                    $('#name').addClass('is-invalid');
+                    $('#submit-btn').prop('disabled', true);
+                } else {
+                    $('#name').removeClass('is-invalid');
+                    $('#submit-btn').prop('disabled', false);
+                }
+            });
+        }
+    });
+    
+    // Form submission validation
+    $('#employeeForm').submit(function(e) {
+        if ($('input[name="photoSource"]:checked').val() === 'camera' && !photoCaptured) {
+            e.preventDefault();
+            alert('Please capture a photo before submitting.');
+        } else if ($('input[name="photoSource"]:checked').val() === 'upload' && !photoUploaded) {
+            e.preventDefault();
+            alert('Please upload a photo before submitting.');
+        }
+    });
+});
+</script>
+{% endblock %} 

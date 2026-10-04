@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <h2 class="text-center">Live Safety Detection</h2>
+        <p class="text-center text-muted">Monitor safety compliance in real-time</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <div class="video-container mb-3">
+                    <img src="{{ url_for('video_feed') }}" class="img-fluid rounded" id="video-feed">
+                </div>
+                <div class="controls text-center">
+                    <button class="btn btn-primary me-2" id="start-btn">
+                        <i class="fas fa-play me-1"></i>Start Detection
+                    </button>
+                    <button class="btn btn-danger" id="stop-btn">
+                        <i class="fas fa-stop me-1"></i>Stop Detection
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Detection Status</h5>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    The system will automatically detect:
+                    <ul class="mb-0 mt-2">
+                        <li>Safety gear compliance (helmet, vest, gloves, boots)</li>
+                        <li>Employee identification</li>
+                        <li>Safety violations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    let detectionActive = false;
+    
+    $('#start-btn').click(function() {
+        if (!detectionActive) {
+            $.get('/start_detection', function(response) {
+                if (response.status === 'started') {
+                    detectionActive = true;
+                    $('#start-btn').prop('disabled', true);
+                    $('#stop-btn').prop('disabled', false);
+                }
+            });
+        }
+    });
+    
+    $('#stop-btn').click(function() {
+        if (detectionActive) {
+            $.get('/stop_detection', function(response) {
+                if (response.status === 'stopped') {
+                    detectionActive = false;
+                    $('#start-btn').prop('disabled', false);
+                    $('#stop-btn').prop('disabled', true);
+                }
+            });
+        }
+    });
+    
+    // Initialize button states
+    $('#stop-btn').prop('disabled', true);
+});
+</script>
+{% endblock %} 
