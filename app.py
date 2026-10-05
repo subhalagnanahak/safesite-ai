@@ -31,7 +31,14 @@ CONFIG = {
     'required_gear': ['helmet', 'vest', 'gloves', 'boots'],
     'violation_deduction': 100,  # Amount in rupees to deduct per violation
     'confidence_threshold': 0.5,
-    'db_path': 'safety_system.db'
+    'db_path': 'safety_system.db',
+    # Fire & smoke detection
+    'fire_model_path': 'static/models/fire_smoke.pt',
+    'fire_confidence': 0.25,
+    'fire_every_n_frames': 2,  # run the fire/smoke model on every Nth frame (saves CPU)
+    # Video source: 0 = webcam. To test with a video file run:
+    #   PowerShell:  $env:SAFESITE_SOURCE="fire.mp4"; python app.py
+    'video_source': os.environ.get('SAFESITE_SOURCE', '0')
 }
 
 # Create directories if they don't exist
@@ -49,6 +56,16 @@ detection_active = False
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 global_frame = None
 
+# Latest detection results, polled by the Detection page via /detection_status
+detection_status = {
+    'ppe': 'idle',        # idle | no_person | compliant | violation | unavailable
+    'missing_gear': [],
+    'fire': False,
+    'smoke': False,
+    'fire_model': False,  # True when the fire/smoke model is loaded
+    'updated': None
+}
+
 # Load YOLO model if available
 if YOLO_AVAILABLE:
     try:
@@ -58,6 +75,15 @@ if YOLO_AVAILABLE:
         print(f"Error loading YOLO model: {e}")
 else:
     model = None
+
+# Load fire & smoke model (separate from the PPE model)
+fire_model = None
+if YOLO_AVAILABLE:
+    try:
+        fire_model = YOLO(CONFIG['fire_model_path'])
+        detection_status['fire_model'] = True
+    except Exception as e:
+        print(f"Fire/smoke model not loaded: {e}")
 
 # Database setup
 def setup_database():
@@ -101,10 +127,7 @@ def setup_database():
     )
     ''')
     
-    # Drop existing salary_deductions table if it exists
-    c.execute('DROP TABLE IF EXISTS salary_deductions')
-    
-    # Create new salary_deductions table with updated structure
+    # Salary deductions table (kept between restarts)
     c.execute('''
     CREATE TABLE IF NOT EXISTS salary_deductions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -298,18 +321,69 @@ def update_analytics(detected=0, violated=0):
     conn.commit()
     conn.close()
 
+def open_video_source():
+    src = str(CONFIG['video_source'])
+    return cv2.VideoCapture(int(src) if src.isdigit() else src)
+
+
+def detect_fire_smoke(frame):
+    """Run the fire/smoke model and return a list of (label, confidence, box)."""
+    found = []
+    if fire_model is None:
+        return found
+    results = fire_model(frame, conf=CONFIG['fire_confidence'], verbose=False)
+    for r in results:
+        for box in r.boxes:
+            label = str(fire_model.names[int(box.cls[0])]).lower()
+            if 'fire' in label or 'smoke' in label:
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                found.append(('fire' if 'fire' in label else 'smoke', float(box.conf[0]), (x1, y1, x2, y2)))
+    return found
+
+
+def draw_hazards(frame, hazards):
+    """Draw fire/smoke boxes on the frame and return (fire_seen, smoke_seen)."""
+    fire_seen = smoke_seen = False
+    for label, conf, (x1, y1, x2, y2) in hazards:
+        color = (0, 90, 255) if label == 'fire' else (200, 200, 200)
+        fire_seen = fire_seen or label == 'fire'
+        smoke_seen = smoke_seen or label == 'smoke'
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 3)
+        cv2.putText(frame, f"{label.upper()} {conf:.2f}", (x1, max(y1 - 10, 20)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+    if fire_seen or smoke_seen:
+        text = "FIRE DETECTED" if fire_seen else "SMOKE DETECTED"
+        cv2.putText(frame, text, (10, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 0, 255), 3)
+    return fire_seen, smoke_seen
+
+
 # Camera handling function
 def generate_frames():
     global camera, global_frame
     known_faces, known_names = load_known_faces()
     
     if camera is None:
-        camera = cv2.VideoCapture(0)  # Use 0 for default webcam
+        camera = open_video_source()  # webcam by default, or a video file (see CONFIG)
+    
+    cam = camera
+    is_file = not str(CONFIG['video_source']).isdigit()
+    just_rewound = False
+    frame_count = 0
+    hazards = []
     
     while detection_active:
-        success, frame = camera.read()
+        success, frame = cam.read()
         if not success:
+            # A video file loops; a webcam failure ends the stream
+            if is_file and not just_rewound:
+                cam.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                just_rewound = True
+                continue
             break
+        just_rewound = False
+        person_detected = False
+        safety_violation = False
+        missing_gear = []
         
         # Store a copy of the current frame for global access
         global_frame = frame.copy()
@@ -406,6 +480,27 @@ def generate_frames():
                 # Display demo message since YOLO isn't available
                 cv2.putText(frame, "Demo Mode: YOLO not available", (10, 30), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+        
+        # Fire & smoke detection
+        frame_count += 1
+        if fire_model is not None and frame_count % CONFIG['fire_every_n_frames'] == 0:
+            hazards = detect_fire_smoke(frame)
+        fire_seen, smoke_seen = draw_hazards(frame, hazards)
+        
+        # Publish the latest status for the web page
+        if model is None:
+            ppe_state = 'unavailable'
+        elif not person_detected:
+            ppe_state = 'no_person'
+        else:
+            ppe_state = 'violation' if safety_violation else 'compliant'
+        detection_status.update({
+            'ppe': ppe_state,
+            'missing_gear': sorted(set(missing_gear)),
+            'fire': fire_seen,
+            'smoke': smoke_seen,
+            'updated': datetime.now().strftime("%H:%M:%S")
+        })
         
         # Display current date and time
         current_datetime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -663,6 +758,10 @@ def video_feed():
     detection_active = True
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
+@app.route('/detection_status')
+def get_detection_status():
+    return jsonify(detection_status)
+
 @app.route('/start_detection')
 def start_detection():
     global detection_active
@@ -676,9 +775,10 @@ def stop_detection():
     if camera:
         camera.release()
         camera = None
+    detection_status.update({'ppe': 'idle', 'missing_gear': [], 'fire': False, 'smoke': False})
     return jsonify({'status': 'stopped'})
 
-@app.route('/capture_employee_photo', methods=['POST'])
+@app.route('/capture_employee_photo', methods=['GET', 'POST'])
 def capture_employee_photo():
     global global_frame
     
